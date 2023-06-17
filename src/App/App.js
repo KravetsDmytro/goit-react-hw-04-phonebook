@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { nanoid } from 'nanoid';
 import ContactForm from '../components/contactForm/ContactForm';
 import ContactList from '../components/contactList/ContactList.js';
 import Filter from '../components/ContactFilter/ContactFiltr';
@@ -6,92 +7,87 @@ import css from './App.module.css';
 
 
 // import ContactUs from './components/contactUs/ContactUs';
+const initialState = [
+  { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
+  { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
+  { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
+  { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
+];
 
+const  App =()=> {
 
-class App extends React.Component {
-  state = {
-    contacts:  [
-      {id: 'id-1', name: 'Rosie Simpson', number: '459-12-56'},
-      {id: 'id-2', name: 'Hermione Kline', number: '443-89-12'},
-      {id: 'id-3', name: 'Eden Clements', number: '645-17-79'},
-      {id: 'id-4', name: 'Annie Copeland', number: '227-91-26'},
-    ],
-    filter: '',
-  }
+ // первірка localstorage на наявність контактів
+ const [contacts, setContacts] = useState(() => {
+  return JSON.parse(localStorage.getItem('contacts')) ?? initialState;
+});
+
+const [filter, setFilter] = useState('');
+
+//Збереження в локал сторідж
+  useEffect(() => {
+    localStorage.setItem('contacts', JSON.stringify(contacts));
+  }, [contacts]);
+
 
   // Додаємо контакт
-  addContact = newContact => {
-    // методперевірки  контакта чи не повторюється.
-    const duplicateName = this.state.contacts.find(
-      contact => contact.name === newContact.name
+  const addContact = ({ name, number }) => {
+    const normalizedFind = name.toLowerCase();
+    const findName = contacts.find(
+      contact => contact.name.toLowerCase() === normalizedFind
     );
-
-    if (duplicateName) {
-      alert(`${newContact.name} is already on contacts`);
-      return;
+    if (findName) {
+      return alert(`${name} is already in contacts`);
     }
 
-    this.setState(({ contacts }) => ({
-      contacts: [newContact, ...contacts],
-    }));
+    const findNumber = contacts.find(contact => contact.number === number);
+    if (findNumber) {
+      return alert(`This phone number is already in use.`);
+    }
+
+    const newContact = {
+      id: nanoid(),
+      name,
+      number,
+    };
+
+    setContacts(contacts => [...contacts, newContact]);
   };
-
-  // фільтр та  записуємо у стейт
-  changeFilter = event => {
-    this.setState({ filter: event.currentTarget.value });
-  };
-
-  // Фільтруємо контакти та повертаємо результат фільтру
-  filterContacts = () => {
-    const { contacts, filter } = this.state;
-    const normalizedFilter = filter.toLowerCase();
-
-    return contacts.filter(contact =>
-      contact.name.toLowerCase().includes(normalizedFilter)
-    );
-  };
-
 
 // видаленя контакту
-deleteContact = contactId =>{
-this.setState(prevState =>({contacts:
-   prevState.contacts.filter(contact => contact.id !==contactId),}));
+const deleteContact = contactId =>{
+  setContacts(contacts =>
+    contacts.filter(contact => contact.id !== contactId)
+  );
 };
+
+const handleFilter = e => {
+  setFilter(e.currentTarget.value);
+};
+
 //медод класу який викликається один раз____________________
-componentDidMount () {
-console.log('App comDidMou')
-//зчитування з локал сторадж данних і запис іх в стейт.
-const contacts=localStorage.getItem('contacts');
-const parsedContacts= JSON.parse(contacts);
-
-if(parsedContacts){this.setState({contacts: parsedContacts})}
-
-}
 //_______________________________________________
 
-//медод класу який викликається кожного разу при змінах .
-componentDidUpdate (prevProps, prevState) {
-console.log('App com Update')
-if(this.state.contacts !==prevState.contacts){
-console.log('oновлення');
+ // фільтрація по імені
 
-//запис в локалсторадж зміни контактів при апдейті та передає в componentDidMount.
-localStorage.setItem('contacts', JSON.stringify(this.state.contacts));
+ const filterList = () => {
+  const normalValue = filter.toLowerCase().trim();
+  return contacts.filter(contact =>
+    contact.name.toLowerCase().includes(normalValue)
+  );
+};
 
-}
-}
+const visibleContacts = filterList();
 
-  render() {
-const {contacts} = this.state;
-const { filter } = this.state;
-const filteredResults = this.filterContacts();
+
+
+
 
     return (
       <div className={css.container} >
         <div>Книга контактів</div>
-<ContactForm onSubmit={this.addContact}  />
-<Filter value={filter} onChange={this.changeFilter} />
-<ContactList contacts={filteredResults} onDeleteContact= {this.deleteContact} />
+<ContactForm onSubmit={addContact}  />
+<Filter value={filter} onChange={handleFilter} />
+<ContactList contacts={visibleContacts} onDeleteContact= {deleteContact} />
 <div>
 <p>
 Загальна кількість контактів: {contacts.length}
@@ -103,6 +99,6 @@ const filteredResults = this.filterContacts();
       </div>
     )
   }
-}
+
 
 export default App;
